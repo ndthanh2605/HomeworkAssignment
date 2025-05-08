@@ -7,22 +7,26 @@
 #include <unordered_map>
 #include <queue>
 #include <iomanip>
+#include "TokenManager.h"
 
 using namespace std;
 
 struct Edge {
-    string base, quote;
+    int base, quote;
     float ask, bid;
 
-    Edge(const string& _base, const string& _quote, float _ask, float _bid)
+    Edge(int _base, int _quote, float _ask, float _bid)
         : base(_base), quote(_quote), ask(_ask), bid(_bid) {
     }
 };
 
-float bestAskRoute(const string& base, const string& quote, unordered_map<string, vector<Edge>>& adj, vector<string>& path);
-float bestBidRoute(const string& base, const string& quote, unordered_map<string, vector<Edge>>& adj, vector<string>& path);
+float bestAskRoute(int base, int quote, vector<vector<Edge>>& adj, vector<string>& path);
+float bestBidRoute(int base, int quote, vector<vector<Edge>>& adj, vector<string>& path);
 
 void printPath(const vector<string>& path) {
+    if (path.empty())
+        return;
+
     cout << path[0];
     for (int i = 1; i < path.size(); i++) {
         cout << "->" << path[i];
@@ -30,82 +34,98 @@ void printPath(const vector<string>& path) {
     cout << endl;
 }
 
+// manage tokens by id
+TokenManager mgr;
+
+
 int main()
 {
     ifstream in("input.txt");
 
-    if (in.is_open()) {
-        string base, quote;
-        int n;
-        unordered_map<string, vector<Edge>> adj;
+    if (!in.is_open()) {
+        cerr << "ERROR open file" << endl;
+        return 0;
+    }
 
-        in >> base >> quote;
-        in >> n;
 
-        string _b, _q;
-        float ask, bid;
-        for (int i = 0; i < n; i++) {
-            in >> _b >> _q;
-            in >> ask >> bid;
-            if (ask == 0 || bid == 0) {
-                cerr << " > invalid ask & bid value" << endl;
-                continue;
-            }
-            adj[_b].push_back(Edge(_b, _q, ask, bid));
-            adj[_q].push_back(Edge(_q, _b, 1.0 / bid, 1.0 / ask));
+    string base, quote;
+    int n;
+    vector<vector<Edge>> adj;
+
+    in >> base >> quote;
+    in >> n;
+    int idBase = mgr.addToken(base);
+    int idQuote = mgr.addToken(quote);
+
+    string _b, _q;
+    float ask, bid;
+    for (int i = 0; i < n; i++) {
+        in >> _b >> _q;
+        in >> ask >> bid;
+        if (ask == 0 || bid == 0) {
+            cerr << " > invalid ask & bid value" << endl;
+            continue;
         }
 
-        // Dijkstra
-        vector<string> path;
-        float bestAsk = bestAskRoute(base, quote, adj, path);
-        printPath(path);
-        cout << bestAsk << endl;
+        int idB = mgr.addToken(_b);
+        int idQ = mgr.addToken(_q);
+        adj.resize(mgr.m_id);
 
-        float bestBid = bestBidRoute(base, quote, adj, path);
-        printPath(path);
-        cout << bestBid << endl;
+        adj[idB].push_back(Edge(idB, idQ, ask, bid));
+        adj[idQ].push_back(Edge(idQ, idB, 1.0 / bid, 1.0 / ask));
+    }
+
+    // Dijkstra
+    vector<string> path;
+    float bestAsk = bestAskRoute(idBase, idQuote, adj, path);
+    printPath(path);
+    cout << bestAsk << endl;
+
+    float bestBid = bestBidRoute(idBase, idQuote, adj, path);
+    printPath(path);
+    cout << bestBid << endl;
         
-        in.close();
-    }
-    else {
-        cerr << "ERROR open file" << endl;
-    }
+    in.close();
 
     return 0;
 }
 
 
-vector<string> buildPath(const string& base, const string& quote, unordered_map<string, string>& parent) {
+vector<string> buildPath(int base, int quote, const vector<int>& parent) {
     vector<string> path;
-    string cur = quote;
+    int cur = quote;
     while (cur != base) {
-        path.push_back(cur);
+        path.push_back(mgr.getToken(cur));
         cur = parent[cur];
     }
-    path.push_back(base);
+    path.push_back(mgr.getToken(base));
     return path;
 }
 
-float bestAskRoute(const string& base, const string& quote, unordered_map<string, vector<Edge>>& adj, vector<string>& path) {
+float bestAskRoute(int base, int quote, vector<vector<Edge>>& adj, vector<string>& path) {
 
-    unordered_map<string, string> parent;
-    unordered_map<string, float> prices;
-    for (auto& itr : adj) {
-        prices[itr.first] = FLT_MAX;
-    }
+    int n = mgr.m_id;
+
+    vector<int> parent(n);
+    vector<float> prices(n, FLT_MAX);
     prices[base] = 1;
 
-    priority_queue<pair<float, string>, vector<pair<float, string>>, greater<>> pq;
+    priority_queue<pair<float, int>, vector<pair<float, int>>, greater<>> pq;
     pq.push({ 1.0, base });
 
     while (!pq.empty()) {
         auto node = pq.top(); pq.pop();
-        if (node.second == quote) {
+        float cost = node.first;
+        int token = node.second;
+        if (token == quote) {
             break;
         }
 
-        for (auto& e : adj[node.second]) {
-            float price = node.first * e.ask;
+        if (cost > prices[token])
+            continue;
+
+        for (auto& e : adj[token]) {
+            float price = cost * e.ask;
             if (price >= prices[e.quote])
                 continue;
 
@@ -119,16 +139,15 @@ float bestAskRoute(const string& base, const string& quote, unordered_map<string
     return prices[quote];
 }
 
-float bestBidRoute(const string& base, const string& quote, unordered_map<string, vector<Edge>>& adj, vector<string>& path) {
+float bestBidRoute(int base, int quote, vector<vector<Edge>>& adj, vector<string>& path) {
 
-    unordered_map<string, string> parent;
-    unordered_map<string, float> prices;
-    for (auto& itr : adj) {
-        prices[itr.first] = 0;
-    }
+    int n = mgr.m_id;
+
+    vector<int> parent(n);
+    vector<float> prices(n, 0);
     prices[base] = 1;
 
-    priority_queue<pair<float, string>> pq;
+    priority_queue<pair<float, int>> pq;
     pq.push({ 1.0, base });
 
     while (!pq.empty()) {

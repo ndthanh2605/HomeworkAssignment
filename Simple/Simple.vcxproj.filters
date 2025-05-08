@@ -18,8 +18,16 @@
     <ClCompile Include="Simple.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TokenManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="input.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TokenManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
