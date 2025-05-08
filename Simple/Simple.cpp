@@ -12,16 +12,16 @@
 using namespace std;
 
 struct Edge {
-    int base, quote;
-    float ask, bid;
+    int u, v;
+    double w;
 
-    Edge(int _base, int _quote, float _ask, float _bid)
-        : base(_base), quote(_quote), ask(_ask), bid(_bid) {
+    Edge(int b, int q, double rate) : u(b), v(q) {
+        w = -log(rate);
     }
 };
 
-float bestAskRoute(int base, int quote, vector<vector<Edge>>& adj, vector<string>& path);
-float bestBidRoute(int base, int quote, vector<vector<Edge>>& adj, vector<string>& path);
+double bellmanFord(int base, int quote, vector<Edge>& edges, vector<string>& path);
+double bestBidRoute(int base, int quote, vector<Edge>& edges, vector<string>& path);
 
 void printPath(const vector<string>& path) {
     if (path.empty())
@@ -40,7 +40,7 @@ TokenManager mgr;
 
 int main()
 {
-    ifstream in("input.txt");
+    ifstream in("input3.txt");
 
     if (!in.is_open()) {
         cerr << "ERROR open file" << endl;
@@ -50,7 +50,7 @@ int main()
 
     string base, quote;
     int n;
-    vector<vector<Edge>> adj;
+    vector<Edge> edges;
 
     in >> base >> quote;
     in >> n;
@@ -58,7 +58,7 @@ int main()
     int idQuote = mgr.addToken(quote);
 
     string _b, _q;
-    float ask, bid;
+    double ask, bid;
     for (int i = 0; i < n; i++) {
         in >> _b >> _q;
         in >> ask >> bid;
@@ -69,21 +69,20 @@ int main()
 
         int idB = mgr.addToken(_b);
         int idQ = mgr.addToken(_q);
-        adj.resize(mgr.m_id);
-
-        adj[idB].push_back(Edge(idB, idQ, ask, bid));
-        adj[idQ].push_back(Edge(idQ, idB, 1.0 / bid, 1.0 / ask));
+        
+        edges.push_back(Edge(idB, idQ, bid));
+        edges.push_back(Edge(idQ, idB, 1.0 / ask));
     }
 
-    // Dijkstra
+    // Bellman-Ford
     vector<string> path;
-    float bestAsk = bestAskRoute(idBase, idQuote, adj, path);
+    double bestAsk = bellmanFord(idQuote, idBase, edges, path);
     printPath(path);
-    cout << bestAsk << endl;
+    cout << (bestAsk == DBL_MAX? bestAsk : exp(bestAsk)) << endl;
 
-    float bestBid = bestBidRoute(idBase, idQuote, adj, path);
+    double bestBid = bellmanFord(idBase, idQuote, edges, path);
     printPath(path);
-    cout << bestBid << endl;
+    cout << (bestBid == DBL_MAX ? bestBid : exp(-bestBid)) << endl;
         
     in.close();
 
@@ -99,73 +98,46 @@ vector<string> buildPath(int base, int quote, const vector<int>& parent) {
         cur = parent[cur];
     }
     path.push_back(mgr.getToken(base));
+    reverse(path.begin(), path.end());
     return path;
 }
 
-float bestAskRoute(int base, int quote, vector<vector<Edge>>& adj, vector<string>& path) {
+double bellmanFord(int base, int quote, vector<Edge>& edges, vector<string>& path) {
 
     int n = mgr.m_id;
 
     vector<int> parent(n);
-    vector<float> prices(n, FLT_MAX);
-    prices[base] = 1;
+    vector<double> prices(n, DBL_MAX);
+    prices[base] = 0;
 
-    priority_queue<pair<float, int>, vector<pair<float, int>>, greater<>> pq;
-    pq.push({ 1.0, base });
-
-    while (!pq.empty()) {
-        auto node = pq.top(); pq.pop();
-        float cost = node.first;
-        int token = node.second;
-        if (token == quote) {
+    // relax all tokens
+    for (int i = 1; i < n; i++) {       // token id in range [1..(m_id - 1)]
+        bool relaxed = false;
+        for (auto& e : edges) {
+            if (prices[e.u] != DBL_MAX && prices[e.u] + e.w < prices[e.v]) {
+                prices[e.v] = prices[e.u] + e.w;
+                parent[e.v] = e.u;
+                relaxed = true;
+            }
+        }
+        if (!relaxed && i > 1)
             break;
-        }
-
-        if (cost > prices[token])
-            continue;
-
-        for (auto& e : adj[token]) {
-            float price = cost * e.ask;
-            if (price >= prices[e.quote])
-                continue;
-
-            prices[e.quote] = price;
-            pq.push({ price, e.quote });
-            parent[e.quote] = node.second;
-        }
     }
-    path = buildPath(base, quote, parent);
 
-    return prices[quote];
-}
-
-float bestBidRoute(int base, int quote, vector<vector<Edge>>& adj, vector<string>& path) {
-
-    int n = mgr.m_id;
-
-    vector<int> parent(n);
-    vector<float> prices(n, 0);
-    prices[base] = 1;
-
-    priority_queue<pair<float, int>> pq;
-    pq.push({ 1.0, base });
-
-    while (!pq.empty()) {
-        auto node = pq.top(); pq.pop();
-        if (node.second == quote) {
+    // run once again for detect negative circle
+    for (int i = 1; i < n; i++) {
+        bool relaxed = false;
+        for (auto& e : edges) {
+            if (prices[e.u] != DBL_MAX && prices[e.u] + e.w < prices[e.v]) {
+                cout << " > NEGATIVE CIRCLE EXISTS!" << endl;
+                relaxed = true;
+                break;
+            }
+        }
+        if (relaxed)
             break;
-        }
-
-        for (auto& e : adj[node.second]) {
-            float price = node.first * e.bid;
-            if (price <= prices[e.quote])
-                continue;
-
-            prices[e.quote] = price;
-            pq.push({ price, e.quote });
-            parent[e.quote] = node.second;
-        }
     }
+
     path = buildPath(base, quote, parent);
 
     return prices[quote];
