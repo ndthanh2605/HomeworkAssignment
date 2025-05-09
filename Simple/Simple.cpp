@@ -40,7 +40,7 @@ TokenManager mgr;
 
 int main()
 {
-    ifstream in("input3.txt");
+    ifstream in("input.txt");
 
     if (!in.is_open()) {
         cerr << "ERROR open file" << endl;
@@ -93,9 +93,13 @@ int main()
 vector<string> buildPath(int base, int quote, const vector<int>& parent) {
     vector<string> path;
     int cur = quote;
+    int cnt = 0;
     while (cur != base) {
         path.push_back(mgr.getToken(cur));
         cur = parent[cur];
+        cnt++;
+        if (cnt == parent.size() * 2)   //  break if exist circle
+            break;
     }
     path.push_back(mgr.getToken(base));
     reverse(path.begin(), path.end());
