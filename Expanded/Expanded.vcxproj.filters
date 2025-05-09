@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Simple.cpp">
+    <ClCompile Include="Expanded.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TokenManager.cpp">
@@ -24,9 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="input.txt" />
-    <Text Include="input1.txt" />
-    <Text Include="input2.txt" />
-    <Text Include="input3.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TokenManager.h">

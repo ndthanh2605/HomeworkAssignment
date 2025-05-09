@@ -21,7 +21,6 @@ struct Edge {
 };
 
 double bellmanFord(int base, int quote, vector<Edge>& edges, vector<string>& path);
-double bestBidRoute(int base, int quote, vector<Edge>& edges, vector<string>& path);
 
 void printPath(const vector<string>& path) {
     if (path.empty())

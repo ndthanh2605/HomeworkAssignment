@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{27a241e7-2f8f-44a9-9311-1ea58ef06f85}</ProjectGuid>
-    <RootNamespace>Simple</RootNamespace>
+    <ProjectGuid>{d8686448-36da-4e54-b918-460ed9bef4e2}</ProjectGuid>
+    <RootNamespace>Expanded</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -104,6 +104,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -127,14 +129,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Simple.cpp" />
+    <ClCompile Include="Expanded.cpp" />
     <ClCompile Include="TokenManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="input.txt" />
-    <Text Include="input1.txt" />
-    <Text Include="input2.txt" />
-    <Text Include="input3.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TokenManager.h" />
